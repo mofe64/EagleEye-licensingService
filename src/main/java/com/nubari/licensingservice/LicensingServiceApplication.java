@@ -19,7 +19,7 @@ import java.util.Locale;
 @RefreshScope
 @EnableDiscoveryClient
 @EnableFeignClients
-@EnableCircuitBreaker
+//@EnableCircuitBreaker
 public class LicensingServiceApplication {
 
     public static void main(String[] args) {

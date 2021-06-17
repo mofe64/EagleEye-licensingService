@@ -35,7 +35,7 @@ public class LicenseController {
         try {
             List<License> licenses = licenseService.getLicensesByOrganization(organizationId);
             return new ResponseEntity<>(licenses, HttpStatus.OK);
-        } catch (HystrixRuntimeException e) {
+        } catch (Exception e) {
             return new ResponseEntity<>(new ApiResponse(false, e.getMessage()), HttpStatus.GATEWAY_TIMEOUT);
         }
 

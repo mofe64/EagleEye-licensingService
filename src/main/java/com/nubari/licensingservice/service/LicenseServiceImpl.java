@@ -9,6 +9,7 @@ import com.nubari.licensingservice.repository.LicenseRepository;
 import com.nubari.licensingservice.service.client.OrganizationDiscoveryClient;
 import com.nubari.licensingservice.service.client.OrganizationFeignClient;
 import com.nubari.licensingservice.service.client.OrganizationRestTemplateClient;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
@@ -18,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.TimeoutException;
 
 @Service
 @Slf4j
@@ -108,14 +110,20 @@ public class LicenseServiceImpl implements LicenseService {
 //        return licenseRepository.findByOrganizationId(organizationId);
 //    }
 
+    //    @Override
+//    @HystrixCommand(fallbackMethod = "fallbackLicenseList")
+//    public List<License> getLicensesByOrganization(String organizationId) {
+//        randomlyRunLong();
+//        return licenseRepository.findByOrganizationId(organizationId);
+//    }
     @Override
-    @HystrixCommand(fallbackMethod = "fallbackLicenseList")
-    public List<License> getLicensesByOrganization(String organizationId) {
+    @CircuitBreaker(name = "licenseService", fallbackMethod = "fallbackLicenseList")
+    public List<License> getLicensesByOrganization(String organizationId) throws TimeoutException {
         randomlyRunLong();
         return licenseRepository.findByOrganizationId(organizationId);
     }
 
-    private List<License> fallbackLicenseList(String organizationId) {
+    private List<License> fallbackLicenseList(String organizationId, Throwable t)  {
         List<License> fallbackList = new ArrayList<>();
         License license = new License();
         license.setLicenseId("000-0000-000");
@@ -149,15 +157,16 @@ public class LicenseServiceImpl implements LicenseService {
     }
 
 
-    private void randomlyRunLong() {
+    private void randomlyRunLong() throws TimeoutException {
         Random rand = new Random();
         int randomNum = rand.nextInt((3 - 1) + 1) + 1;
         if (randomNum == 3) sleep();
     }
 
-    private void sleep() {
+    private void sleep() throws TimeoutException {
         try {
-            Thread.sleep(11000);
+            Thread.sleep(5000);
+            throw new java.util.concurrent.TimeoutException("Err");
         } catch (InterruptedException e) {
             log.error(e.getMessage());
         }
