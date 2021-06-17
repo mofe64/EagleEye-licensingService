@@ -7,6 +7,7 @@ import java.util.List;
 public interface LicenseService {
     License getLicense(String licenseId, String organizationId);
     List<License> getALL();
+    List<License> getLicensesByOrganization(String organizationId);
 
     License createLicense(License license);
 

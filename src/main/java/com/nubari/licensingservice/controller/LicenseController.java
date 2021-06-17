@@ -1,5 +1,6 @@
 package com.nubari.licensingservice.controller;
 
+import com.netflix.hystrix.exception.HystrixRuntimeException;
 import com.nubari.licensingservice.model.License;
 import com.nubari.licensingservice.service.LicenseService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,11 +30,23 @@ public class LicenseController {
         return new ResponseEntity<>(license, HttpStatus.OK);
     }
 
-    @GetMapping
-    public ResponseEntity<?> getAllLicenses(@PathVariable String organizationId) {
-        List<License> licenses = licenseService.getALL();
-        return new ResponseEntity<>(licenses, HttpStatus.OK);
+    @GetMapping()
+    public ResponseEntity<?> getAllLicensesBelongingToAnOrganization(@PathVariable String organizationId) {
+        try {
+            List<License> licenses = licenseService.getLicensesByOrganization(organizationId);
+            return new ResponseEntity<>(licenses, HttpStatus.OK);
+        } catch (HystrixRuntimeException e) {
+            return new ResponseEntity<>(new ApiResponse(false, e.getMessage()), HttpStatus.GATEWAY_TIMEOUT);
+        }
+
     }
+
+//    @GetMapping
+//    public ResponseEntity<?> getAllLicenses(@PathVariable String organizationId) {
+//        List<License> licenses = licenseService.getALL();
+//        return new ResponseEntity<>(licenses, HttpStatus.OK);
+//    }
+
     @PostMapping
     public ResponseEntity<License> createLicense(@RequestBody License request) {
         return ResponseEntity.ok(licenseService.createLicense(request));
@@ -49,10 +62,10 @@ public class LicenseController {
         return ResponseEntity.ok(licenseService.deleteLicense(licenseId));
     }
 
-    @RequestMapping(value="/{licenseId}/{clientType}",method = RequestMethod.GET)
-    public License getLicensesWithClient( @PathVariable("organizationId") String organizationId,
-                                          @PathVariable("licenseId") String licenseId,
-                                          @PathVariable("clientType") String clientType) {
+    @RequestMapping(value = "/{licenseId}/{clientType}", method = RequestMethod.GET)
+    public License getLicensesWithClient(@PathVariable("organizationId") String organizationId,
+                                         @PathVariable("licenseId") String licenseId,
+                                         @PathVariable("clientType") String clientType) {
 
         return licenseService.getLicense(licenseId, organizationId, clientType);
     }

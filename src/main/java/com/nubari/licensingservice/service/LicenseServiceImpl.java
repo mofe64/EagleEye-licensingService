@@ -1,5 +1,7 @@
 package com.nubari.licensingservice.service;
 
+import com.netflix.hystrix.contrib.javanica.annotation.HystrixCommand;
+import com.netflix.hystrix.contrib.javanica.annotation.HystrixProperty;
 import com.nubari.licensingservice.config.ServiceConfig;
 import com.nubari.licensingservice.model.License;
 import com.nubari.licensingservice.model.Organization;
@@ -7,14 +9,18 @@ import com.nubari.licensingservice.repository.LicenseRepository;
 import com.nubari.licensingservice.service.client.OrganizationDiscoveryClient;
 import com.nubari.licensingservice.service.client.OrganizationFeignClient;
 import com.nubari.licensingservice.service.client.OrganizationRestTemplateClient;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.UUID;
 
 @Service
+@Slf4j
 public class LicenseServiceImpl implements LicenseService {
     @Autowired
     MessageSource messages;
@@ -95,6 +101,30 @@ public class LicenseServiceImpl implements LicenseService {
         return licenseRepository.findAll();
     }
 
+//    @Override
+//    @HystrixCommand(commandProperties = {@HystrixProperty(name = "execution.isolation.thread.timeoutInMilliseconds", value = "12000")})
+//    public List<License> getLicensesByOrganization(String organizationId) {
+//        randomlyRunLong();
+//        return licenseRepository.findByOrganizationId(organizationId);
+//    }
+
+    @Override
+    @HystrixCommand(fallbackMethod = "fallbackLicenseList")
+    public List<License> getLicensesByOrganization(String organizationId) {
+        randomlyRunLong();
+        return licenseRepository.findByOrganizationId(organizationId);
+    }
+
+    private List<License> fallbackLicenseList(String organizationId) {
+        List<License> fallbackList = new ArrayList<>();
+        License license = new License();
+        license.setLicenseId("000-0000-000");
+        license.setOrganizationId("OrganizationId");
+        license.setProductName("Sorry no licensing information currently available");
+        fallbackList.add(license);
+        return fallbackList;
+    }
+
     @Override
     public License createLicense(License license) {
         license.setLicenseId(UUID.randomUUID().toString());
@@ -117,4 +147,20 @@ public class LicenseServiceImpl implements LicenseService {
         responseMessage = String.format(messages.getMessage("license.delete.message", null, null), licenseId);
         return responseMessage;
     }
+
+
+    private void randomlyRunLong() {
+        Random rand = new Random();
+        int randomNum = rand.nextInt((3 - 1) + 1) + 1;
+        if (randomNum == 3) sleep();
+    }
+
+    private void sleep() {
+        try {
+            Thread.sleep(11000);
+        } catch (InterruptedException e) {
+            log.error(e.getMessage());
+        }
+    }
+
 }
